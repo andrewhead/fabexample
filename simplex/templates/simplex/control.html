@@ -1,0 +1,51 @@
+{% load staticfiles %}
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Control by Sliders</title>
+        <link rel='stylesheet' href="{% static "simplex/css/main.css" %}" />
+        <link rel='stylesheet' href="{% static "simplex/css/jquery-ui.css" %}" />
+    </head>
+    <body>
+        <div id='main_cont' class='slider_main_cont'>
+            <div class='cols'>
+                <div id='example_cont' class='col2'>
+                    <h1>Goal</h1>
+                    <img id='exemplar_img' src="{{ img }}"/>
+                </div>
+                <div class='col2' id='slider_cont'>
+                    <h2>Set the parameters for the laser cutter</h2>
+                    <div class='cols'>
+                        <div class='col3'>
+                            <p class='slider_par'>
+                                <label class='slider_label' for='power_label'>Power:</label>
+                                <input type='text' id='power_label' class='slider_val' readonly/>
+                            </p>
+                            <div id='power_slider' class='slider'></div>
+                        </div>
+                        <div class='col3'>
+                            <p class='slider_par'>
+                                <label class='slider_label' for='speed_label'>Speed:</label>
+                                <input type='text' id='speed_label' class='slider_val' readonly/>
+                            </p>
+                            <div id='speed_slider' class='slider'></div>
+                        </div>
+                        <div class='col3'>
+                            <p class='slider_par'>
+                                <label class='slider_label' for='ppi_label'>PPI:</label>
+                                <input type='text' id='ppi_label' class='slider_val' readonly/>
+                            </p>
+                            <div id='ppi_slider' class='slider'></div>
+                        </div>
+                    </div>
+                    <div id='upload_ranking_cont'>
+                        <button id='upload_ranking_butt'>Submit Job</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="{% static "simplex/js/jquery.min.js" %}"></script>
+        <script src="{% static "simplex/js/jquery-ui.js" %}"></script>
+        <script src="{% static "simplex/js/sliders.js" %}"></script>
+    </body>
+</html>

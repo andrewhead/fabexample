@@ -1,0 +1,128 @@
+p, h1, h2, h3, h4, h5, h6, label, input, td, th {
+  font-family: Helvetica;
+}
+
+body {
+  text-align: center;
+}
+
+#main_cont {
+  padding-top: 20px;
+  display: inline-block;
+  margin: 0 auto;
+}
+
+#main_cont.slider_main_cont {
+  padding-top: 100px;
+}
+
+#main_header {
+  text-align: center;
+  font-size: 64px;
+}
+
+#exemplar_cont {
+  text-align: center;
+}
+
+#rank_cont {
+  margin-top: 40px;
+}
+
+#rank_cont h2 {
+  text-align: center;
+}
+
+#rank_panel {
+  text-align: center;
+}
+
+#rank_bar {
+  border: 1px black solid;
+}
+
+.ref_label, #rank_bar {
+  display: inline-block;
+  margin-right: 30px;
+  vertical-align: middle;
+}
+
+.ref_label {
+  font-size: 24px;
+}
+
+#upload_ranking_cont {
+  text-align: center;
+}
+
+#upload_ranking_butt {
+  margin-top: 40px;
+  font-size: 36px;
+}
+
+#table_cont {
+  width: 100%;
+  margin: 0 auto;
+  margin-top: 80px;
+}
+
+table {
+  font-size: 20px;
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+
+th, td {
+  padding: 8px;
+  padding-right: 70px;
+}
+
+tr:nth-child(odd) td {
+  background-color: #eeeeee;
+}
+
+tr {
+  border-top: 1px solid #aaaaaa;
+}
+
+h1, h2 {
+  text-align: center;
+}
+
+#example_cont {
+  margin-top: 80px;
+  width: 200px;
+  margin-right: 70px;
+}
+
+#exemplar_img {
+  width: 95%;
+  display: block;
+  margin: 0 auto;
+}
+
+.col2 {
+  float: left;
+}
+
+.col3 {
+  float: left;
+  width: 33%;
+}
+
+div.slider {
+  margin: 0 auto;
+  height: 250px;
+}
+
+.slider_par {
+  text-align: center;
+}
+
+.slider_val, .slider_label {
+  font-size: 16px;
+}
+
+.slider_val {
+  width: 7ex;
+}
