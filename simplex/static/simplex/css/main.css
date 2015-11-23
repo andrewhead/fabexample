@@ -95,6 +95,12 @@ h1, h2 {
   margin-right: 70px;
 }
 
+#simplex_exemplar_img {
+  width: 200px;
+  display: block;
+  margin: 0 auto;
+}
+
 #exemplar_img {
   width: 95%;
   display: block;

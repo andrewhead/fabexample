@@ -3,6 +3,7 @@
 
 /* GLOBALS */
 
+var MODE = '2D';
 var iterationIndex = 1;
 var exampleIndex = 1;
 
@@ -10,30 +11,91 @@ var exampleIndex = 1;
 
 // REUSE: http://stackoverflow.com/questions/14167863/how-can-i-bring-a-circle-to-the-front-with-d3
 d3.selection.prototype.moveToFront = function() {
+
   return this.each(function(){
     this.parentNode.appendChild(this);
   });
+
 };
 
-function color(d) { 
-  var v = Math.floor(d.value[0]);
-  return 'rgb(' + [v, v, v].join(',') + ')'; 
+function appearance(selection) {
+    if (MODE === '1D') {
+        selection.style('fill', function(d) {
+            var v = Math.floor(d.value[0]);
+            return 'rgb(' + [v, v, v].join(',') + ')';
+        });
+    } else {
+        selection
+          .style('fill', 'white')
+          .style('stroke', 'black')
+          .style('stroke-width', 2);
+        d3.select('svg').selectAll('text')
+          .data(selection.data())
+          .enter()
+            .append('text')
+            .attr('transform', 'translate(10,25)')
+            .style('stroke-width', 1)
+            .style('font-size', 20)
+            .style('stroke', 'black')
+            .style('fill', 'white')
+            .style('font-family', 'Helvetica')
+            .text(function(d) { return d.index; });
+    }
+}
+
+function move(selection, x, y) {
+
+    selection.attr('x', x);
+    if (y !== undefined) {
+        selection.attr('y', y);
+    }
+    selection.moveToFront();
+
+    function getMatchingText(box) {
+        var text;
+        d3.selectAll('#rank_panel text').each(function(d) {
+          if (d.index === box.datum().index) {
+              text = d3.select(this);   
+          }
+        });
+        return text;
+    }
+
+    if (MODE !== '1D') {
+        selection.each(function() {
+          var box = d3.select(this);
+          var text = getMatchingText(d3.select(this));
+          text
+            .attr('x', box.attr('x'))
+            .attr('y', box.attr('y'))
+            .moveToFront();
+        });
+    }
+    
+
 }
 
 /* DISPLAY THE GOAL */
 
-var exemplarSvg = d3.select('#exemplar_cont')
-  .append('svg')
-  .attr('width', 200)
-  .attr('height', 200);
+if (MODE === '1D') {
 
-exemplarSvg.selectAll('rect')
-  .data([{'value': [128]}])
-  .enter()
-    .append('rect')
+    d3.select('#simplex_exemplar_img').remove();
+
+    var exemplarSvg = d3.select('#exemplar_cont')
+      .append('svg')
       .attr('width', 200)
-      .attr('height', 200)
-      .style('fill', color);
+      .attr('height', 200);
+
+    exemplarSvg.selectAll('rect')
+      .data([{'value': [128]}])
+      .enter()
+        .append('rect')
+          .attr('width', 200)
+          .attr('height', 200)
+          .call(appearance);
+          // .style('fill', appearance);
+
+}
 
 /* MANIPULATE THE EXAMPLES */
 
@@ -58,14 +120,15 @@ var drag = d3.behavior.drag()
 
     // Move the box
     var selection = d3.select(this);
-    selection
-      .attr('x', d3.event.x - d3.select(this).attr('width') / 2)
-      .attr('y', d3.event.y - d3.select(this).attr('height') / 2)
-      .moveToFront();
+    selection.call(move,
+        d3.event.x - d3.select(this).attr('width') / 2,
+        d3.event.y - d3.select(this).attr('height') / 2);
 
     // Highlight nearby box it will replace
     var displaced = getDisplacedNeighbor(selection);
-    d3.selectAll('#rank_bar rect').style('stroke-width', 0);
+    d3.selectAll('#rank_bar rect')
+      .style('stroke', 'black')
+      .style('stroke-width', 2);
     displaced
       .style('stroke-width', 3)
       .style('stroke', 'rgb(166, 166, 255)');
@@ -79,8 +142,8 @@ var drag = d3.behavior.drag()
     var newX = displaced.attr('x');
     console.log("Original X:" + origX);
     console.log("New X:" + newX);
-    selection.attr('x', newX);
-    displaced.attr('x', origX);
+    selection.call(move, newX);
+    displaced.call(move, origX);
 
     var boxes = d3.selectAll('#rank_bar rect');
     boxes.each(function(d, i) {
@@ -90,14 +153,14 @@ var drag = d3.behavior.drag()
       return a.x - b.x;
     });
     boxes
-      .attr('x', function(d, i) { return i * 100; })
-      .attr('y', 0)
+      .call(move, function(d, i) { return i * 100; }, 0)
       .datum(function(d, i) { 
         d.origX = d3.select(this).attr('x');
         d.rank = i;
         return d; 
       })
-      .style('stroke-width', 0);
+      .style('stroke', 'black')
+      .style('stroke-width', 2);
 
   });
 
@@ -149,17 +212,14 @@ function loadExamples(vertices, extras) {
       .data(data)
       .enter()
         .append('rect')
-          .attr('x', function(d, i) { return i * 100; } )
-          .datum(function(d, i) { 
-            d.origX = i * 100;
-            return d; 
-          }).attr('width', 100)
+          .call(appearance)
+          .attr('width', 100)
           .attr('height', 100)
           .datum(function(d) { 
             d.origX = d3.select(this).attr('x');
             return d; 
           })
-          .style('fill', color)
+          .call(move, function(d, i) { return i * 100; })
           .call(drag);
 
     iterationIndex = iterationIndex + 1;

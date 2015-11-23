@@ -1,0 +1,9 @@
+domain: fabexample.us
+localport: 8008
+appname: simplex
+repo: https://github.com/andrewhead/fabexample.git
+djdir: "{{ src }}"
+privatebucket: fab-example
+djkey: fabexample.key
+logfile: /var/log/fabexample.log
+staticfiles: yes

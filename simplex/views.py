@@ -20,8 +20,11 @@ simplex_executor = SimplexExecutor()
 
 
 def home(request):
+    exemplar_index = request.GET.get('exemplar', 1)
     LoadPageEvent.objects.create(ipAddr=get_real_ip(request))
-    return render(request, 'simplex/home.html', {})
+    return render(request, 'simplex/home.html', {
+        'img': static("simplex/img/exemplar" + str(exemplar_index) + ".png"),
+    })
 
 
 def sliders(request):
