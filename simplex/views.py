@@ -28,8 +28,9 @@ def home(request):
 
 
 def sliders(request):
+    exemplar_no = int(request.GET.get('exemplar', 1))
     return render(request, 'simplex/control.html', {
-        'img': static("simplex/img/exemplar" + str(1) + ".png"),
+        'img': static("simplex/img/exemplar" + str(exemplar_no) + ".png"),
     })
 
 
