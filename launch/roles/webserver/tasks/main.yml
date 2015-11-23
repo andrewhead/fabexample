@@ -20,16 +20,6 @@
   when: systempkgs is defined
   tags: systempkgs
 
-- name: Install Docker
-  shell: curl -sSL https://get.docker.com/ | sh
-  sudo: true
-  tags: dockerinstall
-
-- name: Install Docker Python library
-  pip: name=docker-py version=1.1.0
-  sudo: true
-  tags: dockerinstall
-
 - name: Create project directory
   file: state=directory path={{ projectdir }} owner=ubuntu
   sudo: true
@@ -174,20 +164,6 @@
   service: name=memcached state=started
   sudo: true
   tags: memcached
-
-- name: Create Docker group
-  group: name=docker state=present
-  tags: containers
-
-- name: Fetch and start Docker containers
-  docker:
-    image: "{{ item.image }}"
-    state: running
-    ports: "{{ item.host_port }}:{{ item.exposed_port }}"
-  with_items: containers
-  when: containers is defined
-  sudo: true
-  tags: containers
 
 - name: Add auxiliary processes to supervisor
   template: src={{ item }}.j2 dest=/etc/supervisor/conf.d/{{ item }}.conf

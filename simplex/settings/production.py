@@ -4,7 +4,7 @@ from defaults import *  # noqa
 SECRET_KEY = open(SECRET_KEY_FILE).read()
 DEBUG = False
 TEMPLATE_DEBUG = False
-ALLOWED_HOSTS = ['.simplex.info']
+ALLOWED_HOSTS = ['.fabexample.us']
 STATICFILES_DIRS += ((os.path.join(os.path.abspath(os.sep), 'var', 'www', 'simplex')),)
 STATIC_ROOT = os.path.join(os.path.abspath(os.sep), 'usr', 'local', 'simplex', 'static')
 

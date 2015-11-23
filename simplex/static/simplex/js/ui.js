@@ -1,6 +1,11 @@
 /*global d3, $*/
 /*jslint unparam:true */
 
+/* GLOBALS */
+
+var iterationIndex = 1;
+var exampleIndex = 1;
+
 /* HELPERS */
 
 // REUSE: http://stackoverflow.com/questions/14167863/how-can-i-bring-a-circle-to-the-front-with-d3
@@ -99,21 +104,35 @@ var drag = d3.behavior.drag()
 /* LOAD THE EXAMPLES */
 
 function makeData(vertices, extras) {
+
     var i;
     var data = [];
+
+    function addExample(value, rank, type, index) {
+        if (index === undefined) {
+            index = exampleIndex;
+            exampleIndex = exampleIndex + 1;
+            console.log("New index: " + index);
+        }
+        data.push({
+            'rank': rank,
+            'index': index,
+            'value': value,
+            'type': type,
+        });
+    }
+
     for (i = 0; i < vertices.length; i++) {
-        data.push({'rank': i, 'value': vertices[i], 'type': 'vertex'});
+        addExample(vertices[i].value, i, 'vertex', vertices[i].index);
     }
     if (extras !== undefined) {
         for (i = 0; i < extras.length; i++) {
-            data.push({
-                'rank': vertices.length + i, 
-                'value': extras[i].value,
-                'type': extras[i].type
-            });
+            addExample(extras[i].value, vertices.length + i, extras[i].type);
         }
     }
+
     return data;
+
 }
 
 function loadExamples(vertices, extras) {
@@ -143,10 +162,16 @@ function loadExamples(vertices, extras) {
           .style('fill', color)
           .call(drag);
 
+    iterationIndex = iterationIndex + 1;
+
     return boxes;
 }
 
-var boxes = loadExamples([[255], [172], [100], [32]]);
+var boxes = loadExamples([
+    {value: [255]},
+    {value: [100]}, 
+    {value: [32]}
+]);
 
 $('#upload_ranking_butt').click(function() {
 
@@ -174,17 +199,27 @@ $('#upload_ranking_butt').click(function() {
             return e.rank; 
         });
     }
+    function indices(data) { 
+        return data.map(function (e) { 
+            return e.index; 
+        });
+    }
     function rankOfType(data, type) {
         return ranks(getDataOfType(data, type))[0];
+    }
+    function indexOfType(data, type) {
+        return indices(getDataOfType(data, type))[0];
     }
 
     if (vData.length === allData.length) {
         $.get('/get_next', {
+            'iteration': iterationIndex,
             'vertices': JSON.stringify(values(vData)),
             'vertex_ranks': ranks(vData),
+            'vertex_indices': indices(vData),
         }, function(data) {
-            var origData = values(vData);
-            loadExamples(origData, [
+            // var origData = values(vData);
+            loadExamples(vData, [
                 {'value': data.reflection, 'type': 'reflection'},
                 {'value': data.expansion, 'type': 'expansion'},
                 {'value': data.contraction, 'type': 'contraction'},
@@ -192,13 +227,29 @@ $('#upload_ranking_butt').click(function() {
         });
     } else {
         $.get('/update_vertices', {
+            'iteration': iterationIndex,
             'vertices': JSON.stringify(values(vData)),
             'vertex_ranks': ranks(vData),
+            'vertex_indices': indices(vData),
             'reflection_rank': rankOfType(allData, 'reflection'),
             'expansion_rank': rankOfType(allData, 'expansion'),
             'contraction_rank': rankOfType(allData, 'contraction'),
+            'reflection_index': indexOfType(allData, 'reflection'),
+            'expansion_index': indexOfType(allData, 'expansion'),
+            'contraction_index': indexOfType(allData, 'contraction'),
         }, function(data) {
-            loadExamples(data.vertices);
+            var i, j;
+            for (i = vData.length - 1; i > 0; i--) {
+                for (j = 0; j < data.dropped.length; j++) {
+                    if (vData[i].index === data.dropped[j]) {
+                        vData.splice(i, 1);
+                    }
+                }
+            }
+            for (i = 0; i < data.new.length; i++) {
+                vData.push({'value': data.new[i]});
+            }
+            loadExamples(vData);
         });
     }
 
