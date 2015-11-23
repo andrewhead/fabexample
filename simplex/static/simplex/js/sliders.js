@@ -30,10 +30,10 @@ for (i = 0; i < sliderConfigs.length; i++) {
 
 $('#upload_ranking_butt').click(function() {
     $.get('/submit_job', {
-        'value': JSON.stringify([
+        'values': [
             $('#power_slider').slider('value'),
             $('#speed_slider').slider('value'),
             $('#ppi_slider').slider('value'),
-        ])
+        ]
     });
 });

@@ -122,10 +122,10 @@ def get_next(request):
 
 
 def submit_job(request):
-    value = request.GET.get('value')
+    values = request.GET.getlist('values[]')
     Job.objects.create(
         ipAddr=get_real_ip(request),
-        value=json.dumps(value),
+        value=json.dumps(values),
         type='manual',
     )
     return HttpResponse()
