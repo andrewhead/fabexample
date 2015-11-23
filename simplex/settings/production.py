@@ -31,7 +31,7 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': '/var/log/simplex.log',
+            'filename': '/var/log/fabexample.log',
             'formatter': 'verbose',
         }
     },

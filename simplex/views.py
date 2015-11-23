@@ -6,7 +6,7 @@ import logging
 import numpy as np
 import json
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from ipware.ip import get_real_ip
@@ -121,7 +121,27 @@ def get_next(request):
     })
 
 
+def submit_job(request):
+    value = request.GET.get('value')
+    Job.objects.create(
+        ipAddr=get_real_ip(request),
+        value=json.dumps(value),
+        type='manual',
+    )
+    return HttpResponse()
+
+
 def queue(request):
+
+    jobs = Job.objects.all().order_by('-timestamp')[:20]
+    jobs_augmented = []
+    for j in jobs:
+        value = json.loads(j.value)
+        if type(value) == list:
+            j.exp_value = json.dumps([round(np.power(e, 3.162), 2) for e in value])
+            j.value = json.dumps([round(e, 2) for e in value])
+            jobs_augmented.append(j)
+
     return render(request, 'simplex/queue.html', {
-        'jobs': Job.objects.all().order_by('-timestamp')[:20],
+        'jobs': jobs_augmented,
     })

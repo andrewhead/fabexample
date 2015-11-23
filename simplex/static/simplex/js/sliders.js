@@ -3,7 +3,7 @@
 
 var sliderConfigs = [
     {name: 'power', min: 1, max: 100, step: 0.1, suffix: '%'},
-    {name: 'speed', min: 1, max: 100, step: 0.1, suffix: '%'},
+    {name: 'speed', min: 1, max: 100, step: 1, suffix: '%'},
     {name: 'ppi', min: 10, max: 1000, step: 10, suffix: ''},
 ];
 
@@ -27,3 +27,13 @@ var i;
 for (i = 0; i < sliderConfigs.length; i++) {
     initSlider(sliderConfigs[i]);
 }
+
+$('#upload_ranking_butt').click(function() {
+    $.get('/submit_job', {
+        'value': JSON.stringify([
+            $('#power_slider').slider('value'),
+            $('#speed_slider').slider('value'),
+            $('#ppi_slider').slider('value'),
+        ])
+    });
+});

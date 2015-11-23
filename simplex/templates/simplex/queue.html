@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <meta http-equiv="Refresh" content="1" />
+        <meta http-equiv="Refresh" content="3" />
         <title>Job Queue | FabExample</title>
         <link rel='stylesheet' href="{% static "simplex/css/main.css" %}" />
     </head>
@@ -14,6 +14,7 @@
                         <th>Time</th>
                         <th>Type</th>
                         <th>Point</th>
+                        <th>Exp. Point</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -22,6 +23,7 @@
                         <td>{{ j.timestamp }}</td>
                         <td>{{ j.type }}</td>
                         <td>{{ j.value }}</td>
+                        <td>{{ j.exp_value }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -227,11 +227,28 @@ function loadExamples(vertices, extras) {
     return boxes;
 }
 
-var boxes = loadExamples([
-    {value: [255]},
-    {value: [100]}, 
-    {value: [32]}
-]);
+var boxes;
+
+if (MODE === '1D') {
+    boxes = loadExamples([
+        {value: [255]},
+        {value: [100]}, 
+        {value: [32]}
+    ]);
+} else {
+    /*
+    boxes = loadExamples([
+        {value: [100, 100, 1000]},
+        {value: [10, 1, 10]}, 
+        {value: [3, 100, 1000]},
+    ]);
+    */
+    boxes = loadExamples([
+        {value: [5, 5, 5]},
+        {value: [3, 1, 1]}, 
+        {value: [2, 5, 5]},
+    ]);
+}
 
 $('#upload_ranking_butt').click(function() {
 
