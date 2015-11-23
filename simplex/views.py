@@ -122,7 +122,7 @@ def get_next(request):
 
 
 def submit_job(request):
-    values = request.GET.getlist('values[]')
+    values = [float(_) for _ in request.GET.getlist('values[]')]
     Job.objects.create(
         ipAddr=get_real_ip(request),
         value=json.dumps(values),
