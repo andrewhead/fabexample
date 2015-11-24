@@ -169,9 +169,16 @@ def queue(request):
     for j in jobs:
         value = json.loads(j.value)
         if type(value) == list:
-            j.exp_value = json.dumps([round(np.power(e, 3.162), 2) for e in value])
-            j.value = json.dumps([round(e, 2) for e in value])
-            jobs_augmented.append(j)
+            if len(value) == 3:
+                digits = (1, 0, 0)
+                j.value = json.dumps(
+                    [round(v, digits[i]) for i, v in enumerate(value)]
+                )
+                j.exp_value = json.dumps(
+                    [round(np.power(v, 3.162), digits[i])
+                        for i, v in enumerate(value)]
+                )
+                jobs_augmented.append(j)
 
     return render(request, 'simplex/queue.html', {
         'jobs': jobs_augmented,
