@@ -3,7 +3,7 @@
 
 /* GLOBALS */
 
-var MODE = '1D';
+var MODE = '2D';
 var iterationIndex = 1;
 var exampleIndex = 1;
 
@@ -137,13 +137,9 @@ var drag = d3.behavior.drag()
     
     // Rearrange the boxes based on where the current selection is dragged
     var selection = d3.select(this);
-    var origX = selection.datum().origX;
     var displaced = getDisplacedNeighbor(selection);
-    var newX = displaced.attr('x');
-    console.log("Original X:" + origX);
-    console.log("New X:" + newX);
+    var newX = displaced.attr('x') - 10;
     selection.call(move, newX);
-    displaced.call(move, origX);
 
     var boxes = d3.selectAll('#rank_bar rect');
     boxes.each(function(d, i) {
