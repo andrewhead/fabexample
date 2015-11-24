@@ -60,11 +60,13 @@ class Simplex(object):
                 replace_worst(con)
             else:
                 for v in sorted_vertices[1:]:
-                    v['value'] = self.reduce(
+                    new_value = self.reduce(
                         np.array(sorted_vertices[0]['value']),
                         np.array(v['value'])
                     ).tolist()
-                    del v['rank']
+                    v.clear()
+                    v['type'] = 'vertex'
+                    v['value'] = new_value
                 points.remove(con)
 
         elif any([p['type'] == 'reflection' for p in points]):
