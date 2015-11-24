@@ -11,7 +11,7 @@ from django.shortcuts import render
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from ipware.ip import get_real_ip
 
-from simplex import SimplexExecutor
+from simplex import SimplexExecutor, Simplex
 from models import LoadPageEvent, Job, Rank
 
 
@@ -34,9 +34,39 @@ def sliders(request):
     })
 
 
+def step(request):
+
+    iteration = int(request.GET.get('iteration'))
+    points = json.loads(request.GET.get('points'))
+
+    # Store the ranks that have been given so far
+    for p in points:
+        Rank.objects.create(
+            rank=p['rank'],
+            index=p['index'],
+            iteration=iteration,
+            type=p['type'],
+        )
+
+    simplex = Simplex()
+    new_points = simplex.step(points)
+
+    for p in new_points:
+        if 'rank' not in p:
+            Job.objects.create(
+                ipAddr=get_real_ip(request),
+                value=json.dumps(p['value']),
+                type=p['type'],
+            )
+
+    return JsonResponse({
+        'points': new_points,
+    })
+
+
 def update_vertices(request):
 
-    vertices = np.array(json.loads(request.GET.get('vertices')))
+    vertices = np.array(json.loads(request.GET.get('vertices')), dtype=np.float)
     orig_vertices = vertices.copy()
     vertex_ranks = np.array([int(_) for _ in request.GET.getlist('vertex_ranks[]')])
     vertex_indices = [int(_) for _ in request.GET.getlist('vertex_indices[]')]
@@ -94,7 +124,7 @@ def get_next(request):
     vertex_ranks = request.GET.getlist('vertex_ranks[]')
     vertex_indices = [int(_) for _ in request.GET.getlist('vertex_indices[]')]
     reflection, expansion, contraction = simplex_executor.get_next_points(
-        np.array(vertices),
+        np.array(vertices, dtype=np.float),
         np.array(vertex_ranks),
     )
 

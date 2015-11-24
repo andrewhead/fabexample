@@ -3,7 +3,7 @@
 
 /* GLOBALS */
 
-var MODE = '2D';
+var MODE = '1D';
 var iterationIndex = 1;
 var exampleIndex = 1;
 
@@ -166,7 +166,7 @@ var drag = d3.behavior.drag()
 
 /* LOAD THE EXAMPLES */
 
-function makeData(vertices, extras) {
+function makeData(points) {
 
     var i;
     var data = [];
@@ -175,7 +175,9 @@ function makeData(vertices, extras) {
         if (index === undefined) {
             index = exampleIndex;
             exampleIndex = exampleIndex + 1;
-            console.log("New index: " + index);
+        }
+        if (type === undefined) {
+            type = "vertex";
         }
         data.push({
             'rank': rank,
@@ -185,22 +187,17 @@ function makeData(vertices, extras) {
         });
     }
 
-    for (i = 0; i < vertices.length; i++) {
-        addExample(vertices[i].value, i, 'vertex', vertices[i].index);
-    }
-    if (extras !== undefined) {
-        for (i = 0; i < extras.length; i++) {
-            addExample(extras[i].value, vertices.length + i, extras[i].type);
-        }
+    for (i = 0; i < points.length; i++) {
+        addExample(points[i].value, i, points[i].type, points[i].index);
     }
 
     return data;
 
 }
 
-function loadExamples(vertices, extras) {
+function loadExamples(points) {
 
-    var data = makeData(vertices, extras);
+    var data = makeData(points);
 
     d3.select('#rank_bar svg').remove();
     var rankSvg = d3.select('#rank_bar')
@@ -252,82 +249,12 @@ if (MODE === '1D') {
 
 $('#upload_ranking_butt').click(function() {
 
-    function getDataOfType(data, type) {
-        var i;
-        var typedData = [];
-        for (i = 0; i < data.length; i++) {
-            if (data[i].type === type) {
-                typedData.push(data[i]);
-            }
-        }
-        return typedData;
-    }
-
-    var allData = d3.selectAll('#rank_bar rect').data();
-    var vData = getDataOfType(allData, 'vertex');
-
-    function values(data) { 
-        return data.map(function (e) { 
-            return e.value; 
-        });
-    }
-    function ranks(data) { 
-        return data.map(function (e) { 
-            return e.rank; 
-        });
-    }
-    function indices(data) { 
-        return data.map(function (e) { 
-            return e.index; 
-        });
-    }
-    function rankOfType(data, type) {
-        return ranks(getDataOfType(data, type))[0];
-    }
-    function indexOfType(data, type) {
-        return indices(getDataOfType(data, type))[0];
-    }
-
-    if (vData.length === allData.length) {
-        $.get('/get_next', {
-            'iteration': iterationIndex,
-            'vertices': JSON.stringify(values(vData)),
-            'vertex_ranks': ranks(vData),
-            'vertex_indices': indices(vData),
-        }, function(data) {
-            // var origData = values(vData);
-            loadExamples(vData, [
-                {'value': data.reflection, 'type': 'reflection'},
-                {'value': data.expansion, 'type': 'expansion'},
-                {'value': data.contraction, 'type': 'contraction'},
-            ]);       
-        });
-    } else {
-        $.get('/update_vertices', {
-            'iteration': iterationIndex,
-            'vertices': JSON.stringify(values(vData)),
-            'vertex_ranks': ranks(vData),
-            'vertex_indices': indices(vData),
-            'reflection_rank': rankOfType(allData, 'reflection'),
-            'expansion_rank': rankOfType(allData, 'expansion'),
-            'contraction_rank': rankOfType(allData, 'contraction'),
-            'reflection_index': indexOfType(allData, 'reflection'),
-            'expansion_index': indexOfType(allData, 'expansion'),
-            'contraction_index': indexOfType(allData, 'contraction'),
-        }, function(data) {
-            var i, j;
-            for (i = vData.length - 1; i > 0; i--) {
-                for (j = 0; j < data.dropped.length; j++) {
-                    if (vData[i].index === data.dropped[j]) {
-                        vData.splice(i, 1);
-                    }
-                }
-            }
-            for (i = 0; i < data.new.length; i++) {
-                vData.push({'value': data.new[i]});
-            }
-            loadExamples(vData);
-        });
-    }
+    var data = d3.selectAll('#rank_bar rect').data();
+    $.get('/step', {
+        'iteration': iterationIndex,
+        'points': JSON.stringify(data),
+    }, function(data) {
+        loadExamples(data.points);
+    });
 
 });

@@ -11,4 +11,5 @@ urlpatterns = [
     url(r'^queue$', views.queue, name='queue'),
     url(r'^update_vertices$', views.update_vertices, name='update_vertices'),
     url(r'^get_next$', views.get_next, name='get_next'),
+    url(r'^step$', views.step, name='step'),
 ]
