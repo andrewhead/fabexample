@@ -104,7 +104,7 @@ class Simplex(object):
                             out_of_bounds = True
                             p['rank'] = i
             if out_of_bounds:
-                sorted_points = self.step(sorted_points)
+                sorted_points = self.step(sorted_points, bounds)
 
         return sorted_points
 

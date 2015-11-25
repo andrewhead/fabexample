@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import logging
 import numpy as np
 import json
+import math
 
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
@@ -38,7 +39,8 @@ def step(request):
 
     iteration = int(request.GET.get('iteration'))
     points = json.loads(request.GET.get('points'))
-    # bounds = json.loads(request.GET.get('bounds'))
+    bounds_json = request.GET.get('bounds')
+    bounds = json.loads(bounds_json) if bounds_json is not None else None
 
     # Store the ranks that have been given so far
     for p in points:
@@ -50,7 +52,7 @@ def step(request):
         )
 
     simplex = Simplex()
-    new_points = simplex.step(points)
+    new_points = simplex.step(points, bounds)
 
     for p in new_points:
         if 'rank' not in p:
@@ -154,12 +156,13 @@ def get_next(request):
 
 
 def submit_job(request):
-    values = [float(_) for _ in request.GET.getlist('values[]')]
-    Job.objects.create(
-        ipAddr=get_real_ip(request),
-        value=json.dumps(values),
-        type='manual',
-    )
+    points = json.loads(request.GET.get('points'))
+    for p in points:
+        Job.objects.create(
+            ipAddr=get_real_ip(request),
+            value=json.dumps(p['value']),
+            type=p['type'],
+        )
     return HttpResponse()
 
 
@@ -171,12 +174,13 @@ def queue(request):
         value = json.loads(j.value)
         if type(value) == list:
             if len(value) == 3:
-                digits = (1, 0, 0)
+                digits = [1, 0, 0]
+                start_power = [0, 0, 2]
                 j.value = json.dumps(
                     [round(v, digits[i]) for i, v in enumerate(value)]
                 )
                 j.exp_value = json.dumps(
-                    [round(np.power(v, 3.162), digits[i])
+                    [round(np.power(math.sqrt(10), start_power[i] + v), digits[i])
                         for i, v in enumerate(value)]
                 )
                 jobs_augmented.append(j)

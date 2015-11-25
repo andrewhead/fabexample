@@ -237,11 +237,16 @@ if (MODE === '1D') {
     ]);
     */
     boxes = loadExamples([
-        {value: [4, 4, 4]},
-        {value: [2, 0, 0]},
-        {value: [1, 4, 4]}, 
+        {value: [0, 0, 0]},
+        {value: [0, 0, 4]},
+        {value: [0, 4, 0]}, 
+        {value: [4, 0, 0]},
     ]);
 }
+
+var i;
+var points = d3.selectAll('#rank_bar rect').data();
+$.get('/submit_job', {'points': JSON.stringify(points)});
 
 $('#upload_ranking_butt').click(function() {
 
@@ -251,11 +256,9 @@ $('#upload_ranking_butt').click(function() {
         'iteration': iterationIndex,
         'points': JSON.stringify(data),
     };
-    /*
     if (MODE !== '1D') {
         query.bounds = JSON.stringify([[0, 4], [0, 4], [0, 4]]);
     }
-    */
 
     $.get('/step', query, function(data) {
         loadExamples(data.points);
