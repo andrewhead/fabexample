@@ -139,6 +139,49 @@ class StepTest(unittest.TestCase):
             {'value': [2.0, 0], 'type': 'vertex'},
         ])
 
+    def test_skip_out_of_bounds_points_reflection_and_expansion(self):
+        points = [
+            {'value': [0.0, 0], 'rank': 1, 'type': 'vertex'},
+            {'value': [0.0, 2.0], 'rank': 2, 'type': 'vertex'},
+            {'value': [1.0, 1.0], 'rank': 3, 'type': 'vertex'},
+        ]
+        new_points = self.simplex.step(points, bounds=[[0, 1], [0, 1]])
+        self.assertEqual(new_points, [
+            {'value': [0.0, 0], 'rank': 1, 'type': 'vertex'},
+            {'value': [0.0, 2.0], 'rank': 2, 'type': 'vertex'},
+            {'value': [1.0, 1.0], 'rank': 3, 'type': 'vertex'},
+            {'value': [0.66667, 1.0], 'type': 'contraction'},
+        ])
+
+    def test_skip_out_of_bounds_points_expansion_only(self):
+        points = [
+            {'value': [0.0, 0], 'rank': 1, 'type': 'vertex'},
+            {'value': [0.0, 2.0], 'rank': 2, 'type': 'vertex'},
+            {'value': [1.0, 1.0], 'rank': 3, 'type': 'vertex'},
+            {'value': [-0.33333, 1.0], 'rank': 4, 'type': 'reflection'},
+        ]
+        new_points = self.simplex.step(points, bounds=[[-0.5, 1], [0, 1]])
+        self.assertEqual(new_points, [
+            {'value': [0.0, 0], 'rank': 1, 'type': 'vertex'},
+            {'value': [0.0, 2.0], 'rank': 2, 'type': 'vertex'},
+            {'value': [1.0, 1.0], 'rank': 3, 'type': 'vertex'},
+            {'value': [0.66667, 1.0], 'type': 'contraction'},
+        ])
+
+    def test_normal_behavior_if_no_bounds(self):
+        points = [
+            {'value': [0.0, 0], 'rank': 1, 'type': 'vertex'},
+            {'value': [0.0, 2.0], 'rank': 2, 'type': 'vertex'},
+            {'value': [1.0, 1.0], 'rank': 3, 'type': 'vertex'},
+        ]
+        new_points = self.simplex.step(points)
+        self.assertEqual(new_points, [
+            {'value': [0.0, 0], 'rank': 1, 'type': 'vertex'},
+            {'value': [0.0, 2.0], 'rank': 2, 'type': 'vertex'},
+            {'value': [1.0, 1.0], 'rank': 3, 'type': 'vertex'},
+            {'value': [-0.33333, 1.0], 'type': 'reflection'},
+        ])
+
 
 class MutationTest(unittest.TestCase):
 

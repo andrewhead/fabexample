@@ -26,7 +26,7 @@ def query_ranks(points):
 class Simplex(object):
     ''' Nelder-Mead method for numerically determining the optimum. '''
 
-    def step(self, points):
+    def step(self, points, bounds=None):
 
         vertices = [p for p in points if p['type'] == 'vertex']
         sorted_vertices = sorted(vertices, key=lambda p: p['rank'])
@@ -93,6 +93,18 @@ class Simplex(object):
             if 'rank' in p:
                 p['rank'] = known_rank
                 known_rank += 1
+
+        if bounds is not None:
+            out_of_bounds = False
+            for i, p in enumerate(sorted_points):
+                for ai, axis in enumerate(bounds):
+                    if 'rank' not in p:
+                        value = p['value']
+                        if value[0] < axis[0] or value[1] > axis[1]:
+                            out_of_bounds = True
+                            p['rank'] = i
+            if out_of_bounds:
+                sorted_points = self.step(sorted_points)
 
         return sorted_points
 
