@@ -8,7 +8,9 @@ var sliderConfigs = [
 ];
 
 function initSlider(config) {
-    $('#' + config.name + '_slider').slider({
+    var slider = $('#' + config.name + '_slider');
+    var label = $('#' + config.name + '_label');
+    slider.slider({
         orientation: 'vertical',
         // range: 'min',
         min: config.min,
@@ -16,11 +18,15 @@ function initSlider(config) {
         value: config.max / 2,
         step: config.step,
         slide: function (event, ui) {
-            $('#' + config.name + '_label').val(ui.value + config.suffix);
+            label.val(ui.value + config.suffix);
         }
     });
-    $('#' + config.name + '_label').val(
-        $('#' + config.name + '_slider').slider('value') + config.suffix);
+    label.val(slider.slider('value') + config.suffix);
+    label.change(function() {
+        var value = $(this).val().replace(config.suffix, '');
+        slider.slider('value', value);
+        $(this).val(slider.slider('value') + config.suffix);
+    });
 }
 
 var i;
