@@ -100,7 +100,7 @@ class Simplex(object):
                 for ai, axis in enumerate(bounds):
                     if 'rank' not in p:
                         value = p['value']
-                        if value[0] < axis[0] or value[1] > axis[1]:
+                        if value[ai] < axis[0] or value[ai] > axis[1]:
                             out_of_bounds = True
                             p['rank'] = i
             if out_of_bounds:

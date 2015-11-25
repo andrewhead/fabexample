@@ -237,19 +237,27 @@ if (MODE === '1D') {
     ]);
     */
     boxes = loadExamples([
-        {value: [5, 5, 5]},
-        {value: [3, 1, 1]}, 
-        {value: [2, 5, 5]},
+        {value: [4, 4, 4]},
+        {value: [2, 0, 0]},
+        {value: [1, 4, 4]}, 
     ]);
 }
 
 $('#upload_ranking_butt').click(function() {
 
     var data = d3.selectAll('#rank_bar rect').data();
-    $.get('/step', {
+
+    var query = {
         'iteration': iterationIndex,
         'points': JSON.stringify(data),
-    }, function(data) {
+    };
+    /*
+    if (MODE !== '1D') {
+        query.bounds = JSON.stringify([[0, 4], [0, 4], [0, 4]]);
+    }
+    */
+
+    $.get('/step', query, function(data) {
         loadExamples(data.points);
     });
 

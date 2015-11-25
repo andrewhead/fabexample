@@ -38,6 +38,7 @@ def step(request):
 
     iteration = int(request.GET.get('iteration'))
     points = json.loads(request.GET.get('points'))
+    # bounds = json.loads(request.GET.get('bounds'))
 
     # Store the ranks that have been given so far
     for p in points:
