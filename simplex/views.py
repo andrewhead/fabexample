@@ -20,11 +20,31 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 simplex_executor = SimplexExecutor()
 
 
+def get_cut_image_name(power, speed, ppi):
+
+    SPEED_LEVEL_COUNT = 5
+    PPI_LEVELS = [10, 32, 100, 316, 1000]
+
+    row = int(round(power))
+    col = int(round(speed))
+    index = row * (SPEED_LEVEL_COUNT) + col
+
+    basename = "{ppi}ppi_{index:02}.png".format(
+        ppi=PPI_LEVELS[int(round(ppi))],
+        index=index
+    )
+    path = "simplex/img/cuts/" + basename
+    return static(path)
+
+
 def home(request):
-    exemplar_index = request.GET.get('exemplar', 1)
+    exemplar_index = int(request.GET.get('exemplar', 1))
+    ppi = exemplar_index / 25
+    power = (exemplar_index - (ppi * 25)) / 5
+    speed = exemplar_index % 5
     LoadPageEvent.objects.create(ipAddr=get_real_ip(request))
     return render(request, 'simplex/home.html', {
-        'img': static("simplex/img/exemplar" + str(exemplar_index) + ".png"),
+        'img': get_cut_image_name(power, speed, ppi)
     })
 
 
@@ -41,6 +61,7 @@ def step(request):
     points = json.loads(request.GET.get('points'))
     bounds_json = request.GET.get('bounds')
     bounds = json.loads(bounds_json) if bounds_json is not None else None
+    get_images = bool(request.GET.get('get_images'))
 
     # Store the ranks that have been given so far
     for p in points:
@@ -51,8 +72,16 @@ def step(request):
             type=p['type'],
         )
 
-    simplex = Simplex()
-    new_points = simplex.step(points, bounds)
+    if len(points) > 0:
+        simplex = Simplex()
+        new_points = simplex.step(points, bounds)
+    else:
+        new_points = [
+            {'value': [0, 0, 0], 'type': 'vertex'},
+            {'value': [0, 0, 4], 'type': 'vertex'},
+            {'value': [0, 4, 0], 'type': 'vertex'},
+            {'value': [4, 0, 0], 'type': 'vertex'},
+        ]
 
     for p in new_points:
         if 'rank' not in p:
@@ -61,6 +90,8 @@ def step(request):
                 value=json.dumps(p['value']),
                 type=p['type'],
             )
+        if get_images and 'img' not in p:
+            p['img'] = get_cut_image_name(*p['value'])
 
     return JsonResponse({
         'points': new_points,
@@ -168,7 +199,7 @@ def submit_job(request):
 
 def queue(request):
 
-    jobs = Job.objects.all().order_by('-timestamp')[:20]
+    jobs = Job.objects.all().order_by('-timestamp')[:50]
     jobs_augmented = []
     for j in jobs:
         value = json.loads(j.value)

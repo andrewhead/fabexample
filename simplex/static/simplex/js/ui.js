@@ -26,7 +26,7 @@ function appearance(selection) {
         });
     } else {
         selection
-          .style('fill', 'white')
+          .style('fill-opacity', 0)
           .style('stroke', 'black')
           .style('stroke-width', 2);
         d3.select('svg').selectAll('text')
@@ -40,6 +40,16 @@ function appearance(selection) {
             .style('fill', 'white')
             .style('font-family', 'Helvetica')
             .text(function(d) { return d.index; });
+        d3.select('svg').selectAll('image')
+          .data(selection.data())
+          .enter()
+            .append('image')
+            .attr('xlink:href', function(d) { console.log(d); return d.img; })
+            .attr('width', 100)
+            .attr('height', 100)
+            .on('click', function() {
+                d3.event.preventDefault();
+            });
     }
 }
 
@@ -49,22 +59,26 @@ function move(selection, x, y) {
     if (y !== undefined) {
         selection.attr('y', y);
     }
-    selection.moveToFront();
 
-    function getMatchingText(box) {
-        var text;
-        d3.selectAll('#rank_panel text').each(function(d) {
+    function getMatchingElement(box, type) {
+        var element;
+        d3.selectAll('#rank_panel ' + type).each(function(d) {
           if (d.index === box.datum().index) {
-              text = d3.select(this);   
+              element = d3.select(this);   
           }
         });
-        return text;
+        return element;
     }
 
     if (MODE !== '1D') {
         selection.each(function() {
           var box = d3.select(this);
-          var text = getMatchingText(d3.select(this));
+          var text = getMatchingElement(d3.select(this), 'text');
+          var image = getMatchingElement(d3.select(this), 'image');
+          image
+            .attr('x', box.attr('x'))
+            .attr('y', box.attr('y'))
+            .moveToFront();
           text
             .attr('x', box.attr('x'))
             .attr('y', box.attr('y'))
@@ -72,6 +86,7 @@ function move(selection, x, y) {
         });
     }
     
+    selection.moveToFront();
 
 }
 
@@ -163,32 +178,24 @@ var drag = d3.behavior.drag()
 /* LOAD THE EXAMPLES */
 
 function makeData(points) {
-
-    var i;
-    var data = [];
-
-    function addExample(value, rank, type, index) {
-        if (index === undefined) {
-            index = exampleIndex;
+    var i, p, highestRank = 0;
+    for (i = 0; i < points.length; i++) {
+        p = points[i];
+        if (p.rank !== undefined && p.rank > highestRank) {
+            highestRank = p.rank;
+        } else {
+            p.rank = highestRank + 1;
+            highestRank += 1;
+        }
+        if (p.index === undefined) {
+            p.index = exampleIndex;
             exampleIndex = exampleIndex + 1;
         }
-        if (type === undefined) {
-            type = "vertex";
+        if (p.type === undefined) {
+            p.type = "vertex";
         }
-        data.push({
-            'rank': rank,
-            'index': index,
-            'value': value,
-            'type': type,
-        });
     }
-
-    for (i = 0; i < points.length; i++) {
-        addExample(points[i].value, i, points[i].type, points[i].index);
-    }
-
-    return data;
-
+    return points;
 }
 
 function loadExamples(points) {
@@ -229,24 +236,14 @@ if (MODE === '1D') {
         {value: [32]}
     ]);
 } else {
-    /*
-    boxes = loadExamples([
-        {value: [100, 100, 1000]},
-        {value: [10, 1, 10]}, 
-        {value: [3, 100, 1000]},
-    ]);
-    */
-    boxes = loadExamples([
-        {value: [0, 0, 0]},
-        {value: [0, 0, 4]},
-        {value: [0, 4, 0]}, 
-        {value: [4, 0, 0]},
-    ]);
+    $.get('/step', {
+        'points': JSON.stringify([]),
+        'iteration': iterationIndex,
+        'get_images': true,
+    }, function(data) {
+        loadExamples(data.points);   
+    });
 }
-
-var i;
-var points = d3.selectAll('#rank_bar rect').data();
-$.get('/submit_job', {'points': JSON.stringify(points)});
 
 $('#upload_ranking_butt').click(function() {
 
@@ -258,6 +255,7 @@ $('#upload_ranking_butt').click(function() {
     };
     if (MODE !== '1D') {
         query.bounds = JSON.stringify([[0, 4], [0, 4], [0, 4]]);
+        query.get_images = true;
     }
 
     $.get('/step', query, function(data) {
