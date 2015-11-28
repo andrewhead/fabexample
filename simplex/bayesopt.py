@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 import logging
 import numpy as np
+import scipy.stats
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -28,6 +29,70 @@ sigma | kernel(), f[n, 1], comparisons[m, 2], x[n, 1], sigma_noise | variance
 expected_improvement | kernel(), f[n, 1], comparisons[m, 2], x[n, 1], sigma_noise | ei
 next_point | kernel(), f[n, 1], comparisons[m, 2], x[n, 1], sigma_noise | x
 '''
+
+
+N = scipy.stats.norm()
+
+
+def c_pdf_cdf_term(z):
+    phi = N.pdf(z)
+    Phi = N.cdf(z)
+    return (phi / np.power(Phi, 2)) + (np.power(phi, 2) / Phi) * z
+
+
+def compute_z(fr, fc, sigma):
+    return (fr - fc) / (np.sqrt(2.0) * sigma)
+
+
+def h(comparison, xi):
+    r, c = comparison
+    return \
+        0.0 if xi == r and xi == c else \
+        1.0 if xi == r else \
+        -1.0 if xi == c else \
+        0.0
+
+
+def c_summand(f, m, n, comparison, sigma):
+    '''
+    Params:
+    f: vector of evaluations for all points x
+    m: index of one point
+    n: index of another point
+    comparison: two indices, each for one of a pair of points
+    sigma: standard deviation of the noise
+    '''
+    ri, ci = comparison
+    fr = f[ri][0]
+    fc = f[ci][0]
+    z = compute_z(fr, fc, sigma)
+    cdf_pdf_term = c_pdf_cdf_term(z)
+    hm = h(comparison, m)
+    hn = h(comparison, n)
+    return hm * hn * cdf_pdf_term
+
+
+def c_m_n(f, m, n, comparisons, sigma):
+    num_comp = comparisons.shape[0]
+    c = 0
+    for ci in range(num_comp):
+        comp = comparisons[ci]
+        summand = c_summand(f, m, n, comp, sigma)
+        c += summand
+    return c
+
+
+def compute_C(f, comparisons, sigma):
+    # We assume we have the same number of 'f' as we do of 'x'
+    C = []
+    for fi in range(len(f)):
+        c_row = []
+        for fj in range(len(f)):
+            c_entry = c_m_n(f, fi, fj, comparisons, sigma)
+            c_row.append(c_entry)
+        C.append(c_row)
+    C_np = np.array(C)
+    return C_np
 
 
 def get_distinct_x(comparisons):
@@ -77,15 +142,3 @@ def kernel_matrix(kernel, x):
             row.append(kernel(xe1, xe2))
         K.append(row)
     return np.array(K)
-
-
-def h(comparison_pair, x):
-    r, c = comparison_pair
-    res = np.zeros((len(x)), dtype=np.float)
-    for i, xe in enumerate(x):
-        res[i] = \
-            0 if xe == r and xe == c else \
-            1 if xe == r else \
-            -1 if xe == c else \
-            0
-    return res

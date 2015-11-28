@@ -5,11 +5,13 @@ from __future__ import unicode_literals
 import logging
 import unittest
 import sys
+import numpy as np
 from numpy import array as a
 from numpy.testing import assert_equal, assert_almost_equal
 
 from simplex.bayesopt import h, get_distinct_x, default_kernel,\
-    get_comparison_indices, kernel_vector, kernel_matrix
+    get_comparison_indices, kernel_vector, kernel_matrix, c_pdf_cdf_term,\
+    c_summand, compute_z, c_m_n, compute_C
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -33,29 +35,28 @@ class ComputeHTest(NpArrayTestCase):
     # 4. Derivative of (r, c) where x != r, x != c → 0
 
     def test_compute_h_when_point_is_r(self):
-        # Each element here is an x-position---a point in input space
-        points = a([1.0, 2.0, 3.0, 4.0])
-        comp = a([1.0, 0.0])
-        res = h(comp, points)
-        self.assertTrue(all(res == a([1.0, 0.0, 0.0, 0.0])))
+        point_index = 1
+        comp = a([1, 4])
+        res = h(comp, point_index)
+        self.assertAlmostEqual(res, 1.0)
 
     def test_compute_h_when_point_is_c(self):
-        points = a([1.0, 2.0, 3.0, 4.0])
-        comp = a([0.0, 2.0])
-        res = h(comp, points)
-        self.assertTrue(all(res == a([0.0, -1.0, 0.0, 0.0])))
+        point_index = 4
+        comp = a([1, 4])
+        res = h(comp, point_index)
+        self.assertAlmostEqual(res, -1.0)
 
     def test_compute_h_when_point_is_both_r_and_c(self):
-        points = a([1.0, 2.0, 3.0, 4.0])
-        comp = a([3.0, 3.0])
-        res = h(comp, points)
-        self.assertTrue(all(res == a([0.0, 0.0, 0.0, 0.0])))
+        point_index = 2
+        comp = a([2, 2])
+        res = h(comp, point_index)
+        self.assertAlmostEqual(res, 0.0)
 
     def test_compute_h_when_point_is_neither_r_nor_c(self):
-        points = a([1.0, 2.0, 3.0, 4.0])
-        comp = a([0.0, 0.0])
-        res = h(comp, points)
-        self.assertTrue(all(res == a([0.0, 0.0, 0.0, 0.0])))
+        point_index = 3
+        comp = a([1, 4])
+        res = h(comp, point_index)
+        self.assertAlmostEqual(res, 0.0)
 
 
 class GetDistinctXTest(NpArrayTestCase):
@@ -154,4 +155,171 @@ class KernelTest(NpArrayTestCase):
         self.assertAlmostEqual(K, a([
             [1.0, .60653066],
             [.60653066, 1.0],
+        ]))
+
+
+class ComputeZTest(NpArrayTestCase):
+
+    def test_compute_z(self):
+        z = compute_z(
+            fr=6.0,
+            fc=2.0,
+            sigma=2.0
+        )
+        self.assertAlmostEqual(z, 1.414213562)
+
+
+class ComputeCMatrixTest(NpArrayTestCase):
+
+    def setUp(self):
+        self.default_f = a([
+            [6.0],
+            [1.0],
+            [2.0],
+        ])
+        self.default_comparison = a([0, 2], dtype=np.int)
+        self.default_sigma = 2.0
+
+    def test_compute_cdf_pdf_term(self):
+        res = c_pdf_cdf_term(z=2)
+        self.assertAlmostEqual(res, .06249979)
+
+    def test_c_summand_is_zero_when_n_is_not_in_the_comparison(self):
+        res = c_summand(
+            f=self.default_f,
+            m=0,
+            n=1,
+            comparison=self.default_comparison,
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, 0.0)
+
+    def test_c_summand_is_zero_when_m_is_not_in_the_comparison(self):
+        res = c_summand(
+            f=self.default_f,
+            m=1,
+            n=0,
+            comparison=self.default_comparison,
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, 0.0)
+
+    def test_c_summand_is_zero_when_neither_m_nor_n_is_in_the_comparison(self):
+        res = c_summand(
+            f=self.default_f,
+            m=1,
+            n=1,
+            comparison=self.default_comparison,
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, 0.0)
+
+    def test_c_summand_is_positive_when_m_and_n_are_both_higher_point(self):
+        res = c_summand(
+            f=self.default_f,
+            m=0,
+            n=0,
+            comparison=self.default_comparison,
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, .205949837)
+
+    def test_c_summand_is_positive_when_m_and_n_are_both_lower_point(self):
+        res = c_summand(
+            f=self.default_f,
+            m=0,
+            n=0,
+            comparison=self.default_comparison,
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, .205949837)
+
+    def test_c_summand_is_negative_when_m_is_higher_and_n_is_lower(self):
+        res = c_summand(
+            f=self.default_f,
+            m=0,
+            n=2,
+            comparison=self.default_comparison,
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, -.205949837)
+
+    def test_c_entry_equals_c_summand_when_only_one_relevant_comparison(self):
+        res = c_m_n(
+            f=self.default_f,
+            m=0,
+            n=2,
+            comparisons=a([
+                [0, 2],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, -.205949837)
+
+    def test_c_entry_doubles_with_two_positive_comparisons_where_m_and_n_are_different(self):
+        res = c_m_n(
+            f=self.default_f,
+            m=0,
+            n=2,
+            comparisons=a([
+                [0, 2],
+                [0, 2],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, -.411899674)
+
+    def test_c_entry_doubles_with_two_positive_comparisons_where_m_and_n_are_same(self):
+        res = c_m_n(
+            f=self.default_f,
+            m=0,
+            n=0,
+            comparisons=a([
+                [0, 2],
+                [0, 2],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, .411899674)
+
+    def test_c_entry_zero_if_no_relevant_comparisons(self):
+        res = c_m_n(
+            f=self.default_f,
+            m=0,
+            n=2,
+            comparisons=a([
+                [1, 1],
+                [1, 1],
+                [1, 1],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, 0.0)
+
+    def test_c_entry_with_two_constrasting_comparisons(self):
+        res = c_m_n(
+            f=self.default_f,
+            m=0,
+            n=2,
+            comparisons=a([
+                [0, 2],
+                [2, 0],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, -23.544537719)
+
+    def test_compose_c_matrix(self):
+        C = compute_C(
+            f=self.default_f,
+            comparisons=a([
+                [0, 2],
+                [2, 0],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(C, a([
+            [23.544537719, 0.0, -23.544537719],
+            [0.0, 0.0, 0.0],
+            [-23.544537719, 0.0, 23.544537719],
         ]))
