@@ -74,11 +74,12 @@ def c_summand(f, m, n, comparison, sigma):
 
 def c_m_n(f, m, n, comparisons, sigma):
     num_comp = comparisons.shape[0]
-    c = 0
+    sum_ = 0
     for ci in range(num_comp):
         comp = comparisons[ci]
         summand = c_summand(f, m, n, comp, sigma)
-        c += summand
+        sum_ += summand
+    c = sum_ / (2 * sigma * sigma)
     return c
 
 

@@ -244,7 +244,7 @@ class ComputeCMatrixTest(NpArrayTestCase):
         )
         self.assertAlmostEqual(res, -.205949837)
 
-    def test_c_entry_equals_c_summand_when_only_one_relevant_comparison(self):
+    def test_c_entry_is_summand_over_doubled_squared_sigma_when_only_one_relevant_comparison(self):
         res = c_m_n(
             f=self.default_f,
             m=0,
@@ -254,7 +254,7 @@ class ComputeCMatrixTest(NpArrayTestCase):
             ]),
             sigma=self.default_sigma,
         )
-        self.assertAlmostEqual(res, -.205949837)
+        self.assertAlmostEqual(res, -.205949837 / 8.0)
 
     def test_c_entry_doubles_with_two_positive_comparisons_where_m_and_n_are_different(self):
         res = c_m_n(
@@ -267,7 +267,7 @@ class ComputeCMatrixTest(NpArrayTestCase):
             ]),
             sigma=self.default_sigma,
         )
-        self.assertAlmostEqual(res, -.411899674)
+        self.assertAlmostEqual(res, -.411899674 / 8.0)
 
     def test_c_entry_doubles_with_two_positive_comparisons_where_m_and_n_are_same(self):
         res = c_m_n(
@@ -280,7 +280,7 @@ class ComputeCMatrixTest(NpArrayTestCase):
             ]),
             sigma=self.default_sigma,
         )
-        self.assertAlmostEqual(res, .411899674)
+        self.assertAlmostEqual(res, .411899674 / 8.0)
 
     def test_c_entry_zero_if_no_relevant_comparisons(self):
         res = c_m_n(
@@ -307,7 +307,7 @@ class ComputeCMatrixTest(NpArrayTestCase):
             ]),
             sigma=self.default_sigma,
         )
-        self.assertAlmostEqual(res, -23.544537719)
+        self.assertAlmostEqual(res, -23.544537719 / 8.0)
 
     def test_compose_c_matrix(self):
         C = compute_C(
@@ -319,7 +319,13 @@ class ComputeCMatrixTest(NpArrayTestCase):
             sigma=self.default_sigma,
         )
         self.assertAlmostEqual(C, a([
-            [23.544537719, 0.0, -23.544537719],
+            [2.943067215, 0.0, -2.943067215],
             [0.0, 0.0, 0.0],
-            [-23.544537719, 0.0, 23.544537719],
+            [-2.943067215, 0.0, 2.943067215],
         ]))
+
+
+class ComputeGradientTest(NpArrayTestCase):
+
+    def test_compute_b_summand(self):
+        pass
