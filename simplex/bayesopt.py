@@ -53,6 +53,36 @@ def h(comparison, xi):
         0.0
 
 
+def b_summand(f, j, comparison, sigma):
+    ri, ci = comparison
+    fr = f[ri][0]
+    fc = f[ci][0]
+    z = compute_z(fr, fc, sigma)
+    hi = h(comparison, j)
+    summand = (N.pdf(z) / N.cdf(z)) * hi
+    return summand
+
+
+def b_j(f, j, comparisons, sigma):
+    sum_ = 0
+    num_comp = comparisons.shape[0]
+    for ci in range(num_comp):
+        comp = comparisons[ci]
+        summand = b_summand(f, j, comp, sigma)
+        sum_ += summand
+    b = sum_ / (np.sqrt(2) * sigma)
+    return b
+
+
+def compute_b(f, comparisons, sigma):
+    # We assume we have the same number of 'f' as we do of 'x'
+    b = []
+    for fi in range(len(f)):
+        b_row = [b_j(f, fi, comparisons, sigma)]
+        b.append(b_row)
+    return np.array(b)
+
+
 def c_summand(f, m, n, comparison, sigma):
     '''
     Params:
@@ -73,8 +103,8 @@ def c_summand(f, m, n, comparison, sigma):
 
 
 def c_m_n(f, m, n, comparisons, sigma):
-    num_comp = comparisons.shape[0]
     sum_ = 0
+    num_comp = comparisons.shape[0]
     for ci in range(num_comp):
         comp = comparisons[ci]
         summand = c_summand(f, m, n, comp, sigma)

@@ -11,7 +11,7 @@ from numpy.testing import assert_equal, assert_almost_equal
 
 from simplex.bayesopt import h, get_distinct_x, default_kernel,\
     get_comparison_indices, kernel_vector, kernel_matrix, c_pdf_cdf_term,\
-    c_summand, compute_z, c_m_n, compute_C
+    c_summand, compute_z, c_m_n, compute_C, b_summand, b_j, compute_b
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -327,5 +327,88 @@ class ComputeCMatrixTest(NpArrayTestCase):
 
 class ComputeGradientTest(NpArrayTestCase):
 
-    def test_compute_b_summand(self):
-        pass
+    def setUp(self):
+        self.default_f = a([
+            [6.0],
+            [1.0],
+            [2.0],
+        ])
+        self.default_comparison = a([0, 2], dtype=np.int)
+        self.default_sigma = 2.0
+
+    def test_b_summand_is_0_when_j_not_in_comparison(self):
+        res = b_summand(
+            f=self.default_f,
+            j=1,
+            comparison=self.default_comparison,
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, 0.0)
+
+    def test_b_summand_is_positive_when_j_is_higher_comparison_point(self):
+        res = b_summand(
+            f=self.default_f,
+            j=0,
+            comparison=self.default_comparison,
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, .159290823)
+
+    def test_b_summand_is_negative_when_j_is_lower_comparison_point(self):
+        res = b_summand(
+            f=self.default_f,
+            j=2,
+            comparison=self.default_comparison,
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, -.159290823)
+
+    def test_b_j_composed_of_one_summand_if_only_one_relevant_pair(self):
+        res = b_j(
+            f=self.default_f,
+            j=2,
+            comparisons=a([
+                [0, 2],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, -.056317811)
+
+    def test_b_j_made_up_of_multiple_terms_if_j_in_multiple_comparisons(self):
+        res = b_j(
+            f=self.default_f,
+            j=2,
+            comparisons=a([
+                [0, 2],
+                [2, 1],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, .151312099)
+
+    def test_b_j_is_zero_when_no_comparisons_contain_j(self):
+        res = b_j(
+            f=self.default_f,
+            j=1,
+            comparisons=a([
+                [0, 2],
+                [2, 0],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(res, 0.0)
+
+    def test_compute_b_with_j_for_each_point(self):
+        b = compute_b(
+            f=self.default_f,
+            comparisons=a([
+                [0, 2],
+                [2, 1],
+            ]),
+            sigma=self.default_sigma,
+        )
+        self.assertAlmostEqual(b, a([
+            [.056317811],
+            [-.207629909],
+            [.151312099],
+        ]))
