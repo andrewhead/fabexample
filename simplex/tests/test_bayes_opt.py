@@ -11,7 +11,8 @@ from numpy.testing import assert_equal, assert_almost_equal
 
 from simplex.bayesopt import h, get_distinct_x, default_kernel,\
     get_comparison_indices, kernel_vector, kernel_matrix, c_pdf_cdf_term,\
-    c_summand, compute_z, c_m_n, compute_C, b_summand, b_j, compute_b, compute_g
+    c_summand, compute_z, c_m_n, compute_C, b_summand, b_j, compute_b, compute_g,\
+    compute_H, newton_rhapson
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -26,7 +27,7 @@ class NpArrayTestCase(unittest.TestCase):
         assert_almost_equal(a, b)
 
 
-class ComputeHTest(NpArrayTestCase):
+class ComputeSmallHTest(NpArrayTestCase):
 
     # Cases to handle include:
     # 1. Derivative of (r, c) where x == r != c → 1
@@ -430,17 +431,16 @@ class ComputeGradientTest(NpArrayTestCase):
         [-1.09427888,  1.64173123,  0.2678012 ],
         [-0.60395917,  0.2678012 ,  1.2002017 ]
         ]
-
         From the above example for computing b, we know that b is:
         [
         [.056317811],
         [-.207629909],
         [.151312099],
         ]
-        Therefore, the expected calculation of K^-1 * f + b is:
-         9.013189880       .056317811      9.069507691
-         -4.388339650  +  -.207629909  =  -4.595969559
-         -0.955550420      .151312099      -.804238321
+        Therefore, the expected calculation of -K^-1 * f + b is:
+         -9.013189880      .056317811    -8.956872069
+         4.388339650  +  -.207629909  =   4.180709741
+         0.955550420      .151312099      1.106862519
         '''
         g = compute_g(
             kernel=default_kernel,
@@ -457,7 +457,140 @@ class ComputeGradientTest(NpArrayTestCase):
             sigma=self.default_sigma
         )
         self.assertAlmostEqual(g, a([
-            [9.069507691],
-            [-4.595969559],
-            [-.804238321],
+            [-8.956872069],
+            [4.180709741],
+            [1.106862519],
         ]))
+
+
+class ComputeHTest(NpArrayTestCase):
+
+    def test_compute_H(self):
+        '''
+        This test reuse intermediate test results that can be seen in tests
+        for computing the kernel, computing the gradient, and computing C.
+        From these previous test cases, we know that:
+        K^-1 is:
+        [
+        [ 1.88589785, -1.09427888, -0.60395917],
+        [-1.09427888,  1.64173123,  0.2678012 ],
+        [-0.60395917,  0.2678012 ,  1.2002017 ]
+        ]
+        and C is:
+        [
+        [2.943067215, 0.0, -2.943067215],
+        [0.0, 0.0, 0.0],
+        [-2.943067215, 0.0, 2.943067215],
+        ]
+        We add these two matrices to compute the second derivative H.
+        '''
+        H = compute_H(
+            kernel=default_kernel,
+            x=a([
+                [0.0, 1.0],
+                [1.0, 1.0],
+                [-1.0, 0.0],
+            ]),
+            f=a([
+                [6.0],
+                [1.0],
+                [2.0],
+            ]),
+            comparisons=a([
+                [0, 2],
+                [2, 0],
+            ]),
+            sigma=2.0,
+        )
+        self.assertAlmostEqual(H, a([
+            [4.828965065, -1.09427888, -3.547026385],
+            [-1.09427888,  1.64173123,  0.2678012],
+            [-3.547026385,  0.2678012, 4.143268915]
+        ]))
+
+
+class NewtonRhapsonTest(NpArrayTestCase):
+
+    def test_one_iteration_yields_expected_result(self):
+        '''
+        Taking our results from the computation of H in the last test,
+        H^-1:
+        [
+        [0.750891056 0.399854727 0.616988389]
+        [0.399854727 0.828529076 0.288760930]
+        [0.616988389 0.288760930 0.750891056]
+        ]
+        b (computed fresh):
+        [
+        [-.603424068]
+        [0.0]
+        [.603424068]
+        ]
+        g:
+        [
+        [-9.616613948]
+        [4.388339650]
+        [1.558974488]
+        ]
+        Then, we compute that H^-1 * g:
+        [
+        [-4.504461892]
+        [0.240789374]
+        [-3.495538109]
+        ]
+        '''
+        f1 = newton_rhapson(
+            x=a([
+                [0.0, 1.0],
+                [1.0, 1.0],
+                [-1.0, 0.0],
+            ]),
+            f0=a([
+                [6.0],
+                [1.0],
+                [2.0],
+            ]),
+            comparisons=a([
+                [0, 2],
+                [2, 0],
+            ]),
+            kernel=default_kernel,
+            Hfunc=compute_H,
+            gfunc=compute_g,
+            sigma=2.0,
+            maxiter=1,
+        )
+        self.assertAlmostEqual(f1, a([
+            [10.504461892],
+            [.759210626],
+            [5.495538109],
+        ]))
+
+    def test_run_for_a_while(self):
+        f = newton_rhapson(
+            x=a([
+                [0.0, 1.0],
+                [1.0, 1.0],
+                [-1.0, 0.0],
+                [2.0, 2.0],
+                [1.5, -1.0]
+            ]),
+            f0=a([
+                [0.0],
+                [0.0],
+                [0.0],
+                [0.0],
+                [0.0],
+            ]),
+            comparisons=a([
+                [3, 1],
+                [0, 1],
+                [2, 1],
+                [4, 0],
+                [2, 4],
+            ]),
+            kernel=default_kernel,
+            Hfunc=compute_H,
+            gfunc=compute_g,
+            sigma=.1,
+        )

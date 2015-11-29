@@ -34,6 +34,20 @@ next_point | kernel(), f[n, 1], comparisons[m, 2], x[n, 1], sigma_noise | x
 N = scipy.stats.norm()
 
 
+def newton_rhapson(x, f0, comparisons, kernel, Hfunc, gfunc, sigma, maxiter=100):
+    f = f0
+    i = 0
+    while i < maxiter:
+        H = Hfunc(kernel, x, f, comparisons, sigma)
+        Hinv = np.linalg.inv(H)
+        g = gfunc(kernel, x, f, comparisons, sigma)
+        step = Hinv.dot(g)
+        f = f - step
+        print "f (", i, ")", f
+        i += 1
+    return f
+
+
 def c_pdf_cdf_term(z):
     phi = N.pdf(z)
     Phi = N.cdf(z)
@@ -87,7 +101,7 @@ def compute_g(kernel, x, f, comparisons, sigma):
     K = kernel_matrix(kernel, x)
     Kinv = np.linalg.inv(K)
     b = compute_b(f, comparisons, sigma)
-    g = Kinv.dot(f) + b
+    g = (-1 * Kinv.dot(f)) + b
     return g
 
 
@@ -132,6 +146,14 @@ def compute_C(f, comparisons, sigma):
         C.append(c_row)
     C_np = np.array(C)
     return C_np
+
+
+def compute_H(kernel, x, f, comparisons, sigma):
+    K = kernel_matrix(kernel, x)
+    Kinv = np.linalg.inv(K)
+    C = compute_C(f, comparisons, sigma)
+    H = Kinv + C
+    return H
 
 
 def get_distinct_x(comparisons):
