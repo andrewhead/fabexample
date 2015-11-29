@@ -11,7 +11,7 @@ from numpy.testing import assert_equal, assert_almost_equal
 
 from simplex.bayesopt import h, get_distinct_x, default_kernel,\
     get_comparison_indices, kernel_vector, kernel_matrix, c_pdf_cdf_term,\
-    c_summand, compute_z, c_m_n, compute_C, b_summand, b_j, compute_b
+    c_summand, compute_z, c_m_n, compute_C, b_summand, b_j, compute_b, compute_g
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -150,11 +150,13 @@ class KernelTest(NpArrayTestCase):
         x = a([
             [0.0, 1.0],
             [1.0, 1.0],
+            [-1.0, 0.0],
         ])
         K = kernel_matrix(default_kernel, x)
         self.assertAlmostEqual(K, a([
-            [1.0, .60653066],
-            [.60653066, 1.0],
+            [1.0, .60653066, .367879441],
+            [.60653066, 1.0, .082084999],
+            [.367879441, .082084999, 1.0],
         ]))
 
 
@@ -411,4 +413,51 @@ class ComputeGradientTest(NpArrayTestCase):
             [.056317811],
             [-.207629909],
             [.151312099],
+        ]))
+
+    def test_compute_gradient(self):
+        '''
+        About this computation:
+        Recall from the above test case that the kernel will be:
+        [
+        [1.0, .60653066, .367879441],
+        [.60653066, 1.0, .082084999],
+        [.367879441, .082084999, 1.0],
+        ]
+        It follows that the inverted kernel is:
+        [
+        [ 1.88589785, -1.09427888, -0.60395917],
+        [-1.09427888,  1.64173123,  0.2678012 ],
+        [-0.60395917,  0.2678012 ,  1.2002017 ]
+        ]
+
+        From the above example for computing b, we know that b is:
+        [
+        [.056317811],
+        [-.207629909],
+        [.151312099],
+        ]
+        Therefore, the expected calculation of K^-1 * f + b is:
+         9.013189880       .056317811      9.069507691
+         -4.388339650  +  -.207629909  =  -4.595969559
+         -0.955550420      .151312099      -.804238321
+        '''
+        g = compute_g(
+            kernel=default_kernel,
+            x=a([
+                [0.0, 1.0],
+                [1.0, 1.0],
+                [-1.0, 0.0],
+            ]),
+            f=self.default_f,
+            comparisons=a([
+                [0, 2],
+                [2, 1],
+            ]),
+            sigma=self.default_sigma
+        )
+        self.assertAlmostEqual(g, a([
+            [9.069507691],
+            [-4.595969559],
+            [-.804238321],
         ]))

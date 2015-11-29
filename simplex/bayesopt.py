@@ -83,6 +83,14 @@ def compute_b(f, comparisons, sigma):
     return np.array(b)
 
 
+def compute_g(kernel, x, f, comparisons, sigma):
+    K = kernel_matrix(kernel, x)
+    Kinv = np.linalg.inv(K)
+    b = compute_b(f, comparisons, sigma)
+    g = Kinv.dot(f) + b
+    return g
+
+
 def c_summand(f, m, n, comparison, sigma):
     '''
     Params:
