@@ -12,7 +12,7 @@ from numpy.testing import assert_equal, assert_almost_equal
 from simplex.bayesopt import h, get_distinct_x, default_kernel,\
     get_comparison_indices, kernel_vector, kernel_matrix, c_pdf_cdf_term,\
     c_summand, compute_z, c_m_n, compute_C, b_summand, b_j, compute_b, compute_g,\
-    compute_H, newton_rhapson, predict_f, predict_sigma
+    compute_H, newton_rhapson, predict_f, predict_sigma, acquire
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -539,7 +539,7 @@ class NewtonRhapsonTest(NpArrayTestCase):
         [1.120927715]
         ]
         '''
-        f1 = newton_rhapson(
+        f1, _ = newton_rhapson(
             x=a([
                 [0.0, 1.0],
                 [1.0, 1.0],
@@ -567,7 +567,7 @@ class NewtonRhapsonTest(NpArrayTestCase):
         ]))
 
     def test_run_optimization(self):
-        f = newton_rhapson(
+        f, _ = newton_rhapson(
             x=a([
                 [0.0, 1.0],
                 [1.0, 1.0],
@@ -728,3 +728,88 @@ class ComputeSigmaTest(NpArrayTestCase):
             kernelfunc=default_kernel
         )
         self.assertAlmostEqual(sigma, .377414046)
+
+
+class AcquisitionMaximizationTest(NpArrayTestCase):
+
+    def test_select_point_to_exploit(self):
+        # We attempt to force exploitation by covering most of the input
+        # space and expecting that the maximization algorithm will choose
+        # the point between the highest outputs, given a symmetric output function.
+        next_point = acquire(
+            x=a([
+                [-0.75],
+                [-0.25],
+                [0.25],
+                [0.75],
+            ]),
+            # I got these fmap and Cmap values from running our optimizer
+            # on the input data with comparisons [1, 0], [1, 3], [2, 0], [2, 3].
+            fmap=a([
+                [0.08950024],
+                [0.21423927],
+                [0.21423927],
+                [0.08950024],
+            ]),
+            Cmap=a([
+                [0.15672336, -0.07836168, -0.07836168, 0.0],
+                [-0.07836168, 0.15672336, 0.0, -0.07836168],
+                [-0.07836168, 0.0, 0.15672336, -0.07836168],
+                [0.0, -0.07836168, -0.07836168, 0.15672336],
+            ]),
+            bounds=a([
+                [-1.0, 1.0],
+            ]),
+            kernelfunc=default_kernel
+        )
+        self.assertTrue(next_point[0] > -.25)
+        self.assertTrue(next_point[0] < .25)
+
+    def test_select_point_to_explore(self):
+        next_point = acquire(
+            x=a([
+                [-0.75],
+                [-0.4],
+            ]),
+            # I got these fmap and Cmap values from running our optimizer
+            # on the input data with comparisons [0, 1]
+            fmap=a([
+                [0.03254087],
+                [-0.03254087],
+            ]),
+            Cmap=a([
+                [0.07894662, -0.07894662],
+                [-0.07894662, 0.07894662],
+            ]),
+            bounds=a([
+                [-1.0, 1.0],
+            ]),
+            kernelfunc=default_kernel
+        )
+        self.assertTrue(next_point[0] > -.4)
+
+    def test_select_point_to_explore_in_two_dimensions(self):
+        '''
+        This test case just runs code on a multi-dimensional input dataset.
+        It doesn't test any conditions, but could presumably do so in the future.
+        '''
+        acquire(
+            x=a([
+                [-0.5, -0.5],
+                [-0.5, 0.5],
+            ]),
+            # Fake fmap and Cmap values from another set of x's
+            fmap=a([
+                [0.03254087],
+                [-0.03254087],
+            ]),
+            Cmap=a([
+                [0.07894662, -0.07894662],
+                [-0.07894662, 0.07894662],
+            ]),
+            bounds=a([
+                [-1.0, 1.0],
+                [-1.0, 1.0],
+            ]),
+            kernelfunc=default_kernel
+        )

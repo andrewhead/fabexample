@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import logging
 import numpy as np
 import scipy.stats
+from scipy.optimize import minimize
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -32,6 +33,32 @@ next_point | expectation(), sigma(), best_observed  | x
 
 
 N = scipy.stats.norm()
+
+
+def acquire(x, fmap, Cmap, bounds, kernelfunc):
+
+    def cost_func(xnew):
+
+        # Compute the expected value and variance
+        f_exp = predict_f(x, fmap, xnew, kernelfunc)
+        sigma_exp = predict_sigma(x, fmap, Cmap, xnew, kernelfunc)
+        if sigma_exp == 0.0:
+            return 0.0
+
+        # If this point falls outside of bounds, give it a low score
+        for dimi in range(bounds.shape[0]):
+            if xnew[dimi] < bounds[dimi][0] or xnew[dimi] > bounds[dimi][1]:
+                return 0.0
+
+        # Compute the expected improvement at this point
+        dist = f_exp - np.max(fmap)
+        z = dist / sigma_exp
+        ei = dist * N.cdf(z) + sigma_exp * N.pdf(z)
+        return -ei
+
+    avgs = np.average(bounds, axis=1)
+    res = minimize(cost_func, avgs, method='powell')
+    return np.array([res.x])
 
 
 def predict_f(x, fmap, xnew, kernelfunc):
@@ -71,7 +98,8 @@ def newton_rhapson(x, f0, comparisons, kernelfunc, Hfunc, gfunc, sigma, maxiter=
         step = Hinv.dot(g)
         f = f - step
         i += 1
-    return f
+    Cmap = compute_C(f, comparisons, sigma)
+    return f, Cmap
 
 
 def c_pdf_cdf_term(z):
