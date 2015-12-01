@@ -48,7 +48,7 @@ def acquire(x, fmap, Cmap, bounds, kernelfunc):
         # If this point falls outside of bounds, give it a low score
         for dimi in range(bounds.shape[0]):
             if xnew[dimi] < bounds[dimi][0] or xnew[dimi] > bounds[dimi][1]:
-                return 0.0
+                return 10.0
 
         # Compute the expected improvement at this point
         dist = f_exp - np.max(fmap)
@@ -58,7 +58,10 @@ def acquire(x, fmap, Cmap, bounds, kernelfunc):
 
     avgs = np.average(bounds, axis=1)
     res = minimize(cost_func, avgs, method='powell')
-    return np.array([res.x])
+    xnew = res.x
+    if xnew.shape == ():
+        xnew = np.array([xnew])
+    return xnew
 
 
 def predict_f(x, fmap, xnew, kernelfunc):
@@ -80,6 +83,9 @@ def predict_sigma(x, fmap, Cmap, xnew, kernelfunc):
     # If C cannot be inverted, then add a "regularizer delta"---I
     try:
         Cinv = np.linalg.inv(Cmap)
+        # If the entries are near infinite in the matrix, it was probably singular
+        if np.sum(np.abs(Cinv)) > 1e15:
+            raise np.linalg.LinAlgError
     except np.linalg.LinAlgError:
         Cinv = np.linalg.inv(Cmap + np.eye(len(Cmap)))
     M = np.linalg.inv(K + Cinv)
@@ -108,6 +114,8 @@ def c_pdf_cdf_term(z):
     # https://github.com/misterwindupbird/IBO/blob/master/ego/gaussianprocess/__init__.py
     phi = N.pdf(z)
     Phi = N.cdf(z)
+    if np.isclose(N.cdf(z), 0.0):
+        return 0.0
     return (np.power(phi, 2) / np.power(Phi, 2)) + (phi * z / Phi)
 
 
@@ -130,6 +138,8 @@ def b_summand(f, j, comparison, sigma):
     fc = f[ci][0]
     z = compute_z(fr, fc, sigma)
     hi = h(comparison, j)
+    if np.isclose(N.cdf(z), 0.0):
+        return 0.0
     summand = (N.pdf(z) / N.cdf(z)) * hi
     return summand
 
@@ -242,7 +252,7 @@ def get_comparison_indices(x, comparisons):
 
 def default_kernel(x1, x2):
     diff = x1 - x2
-    return np.exp(-.5 * diff.dot(diff))
+    return np.exp(-10 * diff.dot(diff))
 
 
 def kernel_vector(kernelfunc, x, xnew):
@@ -260,3 +270,49 @@ def kernel_matrix(kernelfunc, x):
             row.append(kernelfunc(xe1, xe2))
         K.append(row)
     return np.array(K)
+
+
+if __name__ == '__main__':
+
+    sigma = 2.0
+    f = np.array([[0.0]])
+    x = np.array([
+        [0.5, 0.5],
+    ])
+    comparisons = np.array([])
+    bounds = np.array([
+        [0.0, 2.0],
+        [0.0, 2.0],
+    ])
+    xnew = np.array([0.0, 0.5])
+
+    def _aappend(np_array, element):
+        l = np_array.tolist()
+        l.append(element)
+        return np.array(l)
+
+    while True:
+
+        xnew_i = len(f)
+        best_f_i = np.argmax(f)
+        xbest = x[best_f_i]
+
+        print "Is", xnew, "better than", xbest, "? (y/n)",
+        answer = raw_input()
+
+        comp = [xnew_i, best_f_i] if answer == 'y' else [best_f_i, xnew_i]
+        comparisons = _aappend(comparisons, comp)
+        f = _aappend(f, [0.0])
+        x = _aappend(x, xnew)
+
+        fmap, Cmap = newton_rhapson(
+            x, f, comparisons, default_kernel,
+            compute_H, compute_g, sigma, maxiter=10)
+        xnew = acquire(x, fmap, Cmap, bounds, default_kernel)
+        f = fmap
+        print "x:"
+        print x
+        print "comparisons"
+        print comparisons
+        print "f:"
+        print f
