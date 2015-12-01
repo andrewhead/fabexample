@@ -25,33 +25,62 @@ g | kernel(), f[n, 1], comparisons[m, 2], x[n, 1], sigma_noise | g[n, 1]
 predict | kernel(), get_f_map(), f0 | y
 
 And these methods for optimizing the selection of the next point:
-sigma | kernel(), f[n, 1], comparisons[m, 2], x[n, 1], sigma_noise | variance
-expected_improvement | kernel(), f[n, 1], comparisons[m, 2], x[n, 1], sigma_noise | ei
-next_point | kernel(), f[n, 1], comparisons[m, 2], x[n, 1], sigma_noise | x
+sigma | kernel(), fmap[n, 1], comparisons[m, 2], x[n, 1], sigma_noise | variance
+expectation | kernel(), fmap[n, 1], x[n, 1], newx | ei
+next_point | expectation(), sigma(), best_observed  | x
 '''
 
 
 N = scipy.stats.norm()
 
 
-def newton_rhapson(x, f0, comparisons, kernel, Hfunc, gfunc, sigma, maxiter=100):
+def predict_f(x, fmap, xnew, kernelfunc):
+    k = kernel_vector(kernelfunc, x, xnew)
+    K = kernel_matrix(kernelfunc, x)
+    Kinv = np.linalg.inv(K)
+    kernel_product = k.T.dot(Kinv)
+    f = kernel_product.dot(fmap)
+    f_elem = f[0][0]
+    return f_elem
+
+
+def predict_sigma(x, fmap, Cmap, xnew, kernelfunc):
+    K = kernel_matrix(kernelfunc, x)
+    k = kernel_vector(kernelfunc, x, xnew)
+    knew = kernelfunc(xnew, xnew)
+    # Here, we take a cue from Eric Brochu's source:
+    # https://github.com/misterwindupbird/IBO/blob/master/ego/gaussianprocess/__init__.py
+    # If C cannot be inverted, then add a "regularizer delta"---I
+    try:
+        Cinv = np.linalg.inv(Cmap)
+    except np.linalg.LinAlgError:
+        Cinv = np.linalg.inv(Cmap + np.eye(len(Cmap)))
+    M = np.linalg.inv(K + Cinv)
+    sigma = knew - k.T.dot(M).dot(k)
+    sigma_elem = sigma[0][0]
+    return sigma_elem
+
+
+def newton_rhapson(x, f0, comparisons, kernelfunc, Hfunc, gfunc, sigma, maxiter=100):
     f = f0
     i = 0
     while i < maxiter:
-        H = Hfunc(kernel, x, f, comparisons, sigma)
+        H = Hfunc(kernelfunc, x, f, comparisons, sigma)
         Hinv = np.linalg.inv(H)
-        g = gfunc(kernel, x, f, comparisons, sigma)
+        g = gfunc(kernelfunc, x, f, comparisons, sigma)
         step = Hinv.dot(g)
         f = f - step
-        print "f (", i, ")", f
         i += 1
     return f
 
 
 def c_pdf_cdf_term(z):
+    # The product in the paper is a typo.  This is the right way.
+    # See also Eric's implementation at
+    # https://github.com/misterwindupbird/IBO/blob/master/ego/gaussianprocess/__init__.py
     phi = N.pdf(z)
     Phi = N.cdf(z)
-    return (phi / np.power(Phi, 2)) + (np.power(phi, 2) / Phi) * z
+    return (np.power(phi, 2) / np.power(Phi, 2)) + (phi * z / Phi)
 
 
 def compute_z(fr, fc, sigma):
@@ -97,8 +126,8 @@ def compute_b(f, comparisons, sigma):
     return np.array(b)
 
 
-def compute_g(kernel, x, f, comparisons, sigma):
-    K = kernel_matrix(kernel, x)
+def compute_g(kernelfunc, x, f, comparisons, sigma):
+    K = kernel_matrix(kernelfunc, x)
     Kinv = np.linalg.inv(K)
     b = compute_b(f, comparisons, sigma)
     g = (-1 * Kinv.dot(f)) + b
@@ -148,11 +177,11 @@ def compute_C(f, comparisons, sigma):
     return C_np
 
 
-def compute_H(kernel, x, f, comparisons, sigma):
-    K = kernel_matrix(kernel, x)
+def compute_H(kernelfunc, x, f, comparisons, sigma):
+    K = kernel_matrix(kernelfunc, x)
     Kinv = np.linalg.inv(K)
     C = compute_C(f, comparisons, sigma)
-    H = Kinv + C
+    H = -Kinv + C
     return H
 
 
@@ -188,18 +217,18 @@ def default_kernel(x1, x2):
     return np.exp(-.5 * diff.dot(diff))
 
 
-def kernel_vector(kernel, x, xnew):
+def kernel_vector(kernelfunc, x, xnew):
     klist = []
     for xe in x:
-        klist += [[kernel(xe, xnew)]]
+        klist += [[kernelfunc(xe, xnew)]]
     return np.array(klist)
 
 
-def kernel_matrix(kernel, x):
+def kernel_matrix(kernelfunc, x):
     K = []
     for xe1 in x:
         row = []
         for xe2 in x:
-            row.append(kernel(xe1, xe2))
+            row.append(kernelfunc(xe1, xe2))
         K.append(row)
     return np.array(K)
