@@ -6,6 +6,7 @@ import logging
 import numpy as np
 import scipy.stats
 from scipy.optimize import minimize
+from functools import partial
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -250,9 +251,9 @@ def get_comparison_indices(x, comparisons):
     return np.array(indices)
 
 
-def default_kernel(x1, x2):
+def default_kernel(x1, x2, a=-.5):
     diff = x1 - x2
-    return np.exp(-10 * diff.dot(diff))
+    return np.exp(a * diff.dot(diff))
 
 
 def kernel_vector(kernelfunc, x, xnew):
@@ -285,6 +286,7 @@ if __name__ == '__main__':
         [0.0, 2.0],
     ])
     xnew = np.array([0.0, 0.5])
+    kernel = partial(default_kernel, a=-10)
 
     def _aappend(np_array, element):
         l = np_array.tolist()
@@ -306,9 +308,9 @@ if __name__ == '__main__':
         x = _aappend(x, xnew)
 
         fmap, Cmap = newton_rhapson(
-            x, f, comparisons, default_kernel,
+            x, f, comparisons, kernel,
             compute_H, compute_g, sigma, maxiter=10)
-        xnew = acquire(x, fmap, Cmap, bounds, default_kernel)
+        xnew = acquire(x, fmap, Cmap, bounds, kernel)
         f = fmap
         print "x:"
         print x
